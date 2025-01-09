@@ -22,35 +22,17 @@ IDとTimestampは自動付与
 DB上にあるレコードはすべて、toに記録されているユーザーに受け渡されていないものとする。
 """
 
-import socket
-import base64
+import socket  # モジュールをインポート
 
-HOST = "ccx01.sfc.keio.ac.jp"
-PORT = 3939
-BUFSIZE = 4096
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+HOST = "133.27.42.127"  # 宛先を指定
+PORT = 3939  # ポートを指定
+BUFSIZE = 4096  # バッファサイズを指定
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET: IPv4, SOCK_STREAM: TCP を指定してソケットを生成
 
-print("Connecting to the server...")
-client.connect((HOST, PORT))
+client.connect((HOST, PORT))  # HOST,PORTを指定して接続を実施
 
-# サーバーからのメッセージを受信
-data = client.recv(BUFSIZE)
-print(data.decode("UTF-8"))
+data = client.recv(BUFSIZE)  # サーバからの送信されたbyte列を受信
+print(data.decode("UTF-8"))  # 受信したbyte列データをstringにデコード(文字コードはutf-8を指定
 
-# サーバーにメッセージを送信
-from_name = "test from zackey"
-to_name = "test to aokiti"
-subject_text = "test message"
-body_text = "this is test text;; ."
+client.close()  # クライアントソケットを修了
 
-from_name_encoded = base64.b64encode(from_name.encode()).decode()
-to_name_encoded = base64.b64encode(to_name.encode()).decode()
-subject_text_encoded = base64.b64encode(subject_text.encode()).decode()
-body_text_encoded = base64.b64encode(body_text.encode()).decode()
-
-send_request_text = f"{from_name_encoded};{to_name_encoded};{subject_text_encoded};{body_text_encoded}"
-
-result = client.send(send_request_text.encode("utf-8"))
-print("Successfully to send message: ", send_request_text)
-
-client.close()
