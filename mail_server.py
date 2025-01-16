@@ -40,6 +40,16 @@ cur.execute(
     "CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, from_name TEXT, to_name TEXT, subject_text TEXT, body_text TEXT)"
 )
 
+cur.execute("INSERT INTO mail (timestamp, from_name, to_name, subject_text, body_text) VALUES (?, ?, ?, ?, ?)",
+            (datetime.datetime.now(), "from_name_test", "to_name_test", "subject_text_test", "body_text_test"))
+con.commit()
+
+res = cur.execute("SELECT * FROM mail")
+res.fetchone()
+# JSON形式でデータを表示
+for row in res:
+    print(row)
+
 
 def handle_connection_smtp(client):
     thread_id = threading.get_ident()
