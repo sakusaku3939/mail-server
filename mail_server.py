@@ -85,24 +85,66 @@ def handle_connection_smtp(client):
 
 
 def handle_connection_pop(client):
-    thread_id = threading.get_ident()
-    print(f"[POP] Handling connection in thread {thread_id}")
+    try:
+        thread_id = threading.get_ident()
+        print(f"[POP] Handling connection in thread {thread_id}")
 
-    response = f"POP Hello from thread {thread_id}\n".encode("utf-8")
-    client.sendall(response)
+        data = client.recv(BUFSIZE)
+        print(f"[POP] Received: {data.decode('utf-8')}")
 
-    data = client.recv(BUFSIZE)
-    print(f"[POP] Received: {data.decode('utf-8')}")
+        to_name_decoded = base64.b64decode(data).decode()
+        print(f"to_name_decoded: {to_name_decoded}")
 
-    client.close()
+        # メールをDBから取得
+        cur.execute("SELECT * FROM mail WHERE to_name = ?", (to_name_decoded,))
+        rows = cur.fetchall()
+        print(f"DB rows: {rows}")
+
+        if len(rows) == 0:
+            response = "".encode("utf-8")
+            client.sendall(response)
+            return
+
+        # メールをクライアントに送信
+        for row in rows:
+            from_name = row[2]
+            to_name = row[3]
+            subject_text = row[4]
+            body_text = row[5]
+            timestamp = row[1]
+
+            from_name_encoded = base64.b64encode(from_name.encode()).decode()
+            to_name_encoded = base64.b64encode(to_name.encode()).decode()
+            subject_text_encoded = base64.b64encode(subject_text.encode()).decode()
+            body_text_encoded = base64.b64encode(body_text.encode()).decode()
+            timestamp_encoded = base64.b64encode(timestamp.isoformat().encode()).decode()
+
+            response = f"{from_name_encoded};{to_name_encoded};{subject_text_encoded};{body_text_encoded};{timestamp_encoded}".encode(
+                "utf-8")
+            client.sendall(response)
+
+            # 受信したメールをDBから削除
+            # with lock:
+            #     cur.execute("DELETE FROM mail WHERE id = ?", (row[0],))
+            #     con.commit()
+
+    except Exception as e:
+        print(f"Error: {e}")
+        response = "0".encode("utf-8")
+        client.sendall(response)
+    finally:
+        client.close()
 
 
 def accept_connections(server, handler):
-    while True:
-        client, address = server.accept()
-        print(f"{datetime.datetime.now()} 接続要求あり: {address}")
-        thread = threading.Thread(target=handler, args=(client,))
-        thread.start()
+    try:
+        while True:
+            client, address = server.accept()
+            print(f"{datetime.datetime.now()} 接続要求あり: {address}")
+            thread = threading.Thread(target=handler, args=(client,))
+            thread.start()
+    except KeyboardInterrupt:
+        server.close()
 
 
 # SMTPサーバーとPOPサーバーの接続受付をそれぞれ別スレッドで実行

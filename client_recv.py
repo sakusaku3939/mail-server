@@ -22,17 +22,26 @@ IDとTimestampは自動付与
 DB上にあるレコードはすべて、toに記録されているユーザーに受け渡されていないものとする。
 """
 
-import socket  # モジュールをインポート
+import socket
 
-HOST = "133.27.42.127"  # 宛先を指定
-PORT = 3939  # ポートを指定
-BUFSIZE = 4096  # バッファサイズを指定
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET: IPv4, SOCK_STREAM: TCP を指定してソケットを生成
+HOST = "bastion.jn.sfc.keio.ac.jp"
+PORT = 2414
+BUFSIZE = 4096
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-client.connect((HOST, PORT))  # HOST,PORTを指定して接続を実施
+client.connect((HOST, PORT))
 
-data = client.recv(BUFSIZE)  # サーバからの送信されたbyte列を受信
-print(data.decode("UTF-8"))  # 受信したbyte列データをstringにデコード(文字コードはutf-8を指定
+# サーバーにメッセージを送信
+to_name = "test to aokiti"
+send_request_text = f"{to_name};"
+result = client.send(send_request_text.encode("utf-8"))
 
-client.close()  # クライアントソケットを修了
+# サーバーからのメッセージを受信
+data = client.recv(BUFSIZE)
+print(data.decode("UTF-8"))
+if data.decode("UTF-8") != "0":
+    print("Success to receive message: ", data.decode("UTF-8"))
+    print("Message: ", data.decode("UTF-8"))
+
+client.close()
 
