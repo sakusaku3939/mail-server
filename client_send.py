@@ -25,7 +25,7 @@ DB上にあるレコードはすべて、toに記録されているユーザー�
 import socket
 import base64
 
-HOST = "ccx01.sfc.keio.ac.jp"
+HOST = "bastion.jn.sfc.keio.ac.jp"
 PORT = 3939
 BUFSIZE = 4096
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

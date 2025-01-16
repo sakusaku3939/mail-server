@@ -2,6 +2,7 @@ import base64
 import socket
 import datetime
 import threading
+import sqlite3
 
 SMTP_PORT = 3939
 POP_PORT = 2414
@@ -17,6 +18,27 @@ print("Started SMTP server")
 pop_server.bind(("", POP_PORT))
 pop_server.listen()
 print("Started POP server")
+
+
+# datetime → テキストへのアダプタ
+def adapt_datetime(dt):
+    return dt.isoformat()
+
+
+# テキスト → datetimeへのコンバータ
+def convert_datetime(s):
+    return datetime.datetime.fromisoformat(s.decode('utf-8'))
+
+
+# カスタムアダプタとコンバータを登録
+sqlite3.register_adapter(datetime.datetime, adapt_datetime)
+sqlite3.register_converter("DATETIME", convert_datetime)
+
+con = sqlite3.connect("mail.db")
+cur = con.cursor()
+cur.execute(
+    "CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, from_name TEXT, to_name TEXT, subject_text TEXT, body_text TEXT)"
+)
 
 
 def handle_connection_smtp(client):
@@ -37,7 +59,8 @@ def handle_connection_smtp(client):
     subject_text_decoded = base64.b64decode(split_texts[2]).decode()
     body_text_decoded = base64.b64decode(split_texts[3]).decode()
 
-    print(f"from_name_decoded: {from_name_decoded}, to_name_decoded: {to_name_decoded}, subject_text_decoded: {subject_text_decoded}, body_text_decoded: {body_text_decoded}")
+    print(
+        f"from_name_decoded: {from_name_decoded}, to_name_decoded: {to_name_decoded}, subject_text_decoded: {subject_text_decoded}, body_text_decoded: {body_text_decoded}")
 
     client.close()
 
