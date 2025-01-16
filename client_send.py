@@ -33,10 +33,6 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print("Connecting to the server...")
 client.connect((HOST, PORT))
 
-# サーバーからのメッセージを受信
-data = client.recv(BUFSIZE)
-print(data.decode("UTF-8"))
-
 # サーバーにメッセージを送信
 from_name = "test from zackey"
 to_name = "test to aokiti"
@@ -50,7 +46,15 @@ body_text_encoded = base64.b64encode(body_text.encode()).decode()
 
 send_request_text = f"{from_name_encoded};{to_name_encoded};{subject_text_encoded};{body_text_encoded}"
 
+# サーバーにメッセージを送信
 result = client.send(send_request_text.encode("utf-8"))
-print("Successfully to send message: ", send_request_text)
+print("Message: ", send_request_text)
+
+# サーバーからのメッセージを受信
+data = client.recv(BUFSIZE)
+if data.decode("UTF-8") == "1":
+    print("Success to send message")
+else:
+    print("Fail to send message")
 
 client.close()
