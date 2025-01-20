@@ -96,11 +96,12 @@ def handle_connection_pop(client):
         data = client.recv(BUFSIZE)
         print(f"[POP] Received: {data.decode('utf-8')}")
 
-        to_name_decoded = base64.b64decode(data).decode()
+        to_name = data.decode('utf-8')
+        to_name_decoded = base64.b64decode(to_name).decode()
         print(f"to_name_decoded: {to_name_decoded}")
 
         # メールをDBから取得
-        cur.execute("SELECT * FROM mail WHERE to_name = ?", (to_name_decoded,))
+        cur.execute("SELECT * FROM mail WHERE to_name = ?", (to_name,))
         rows = cur.fetchall()
         print(f"DB rows: {rows}")
 
@@ -166,3 +167,4 @@ try:
     pop_thread.join()
 except KeyboardInterrupt:
     running = False
+    print("\nStopping servers...")
