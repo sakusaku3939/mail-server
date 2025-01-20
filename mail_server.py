@@ -110,6 +110,8 @@ def handle_connection_pop(client):
             client.sendall(response)
             return
 
+        mails = []
+
         # メールをクライアントに送信
         for row in rows:
             from_name = row[2]
@@ -118,16 +120,17 @@ def handle_connection_pop(client):
             body_text = row[5]
             timestamp = row[1]
 
-            response = (
-                f"{from_name};{to_name};{subject_text};{body_text};{timestamp}"
-                .encode("utf-8")
-            )
-            client.sendall(response)
+            mails.append(f"{from_name};{to_name};{subject_text};{body_text};{timestamp}")
 
-            # 受信したメールをDBから削除
-            # with lock:
-            #     cur.execute("DELETE FROM mail WHERE id = ?", (row[0],))
-            #     con.commit()
+        # 複数メールをカンマ区切りで送信
+        response = ",".join(mails).encode("utf-8")
+        client.sendall(response)
+
+        # 受信したメールを全てDBから削除
+        # with lock:
+        #     cur.execute("DELETE FROM mail WHERE to_name = ?", (to_name,))
+        #     con.commit()
+        #     print(f"Deleted mails for {to_name}")
 
     except Exception as e:
         print(f"Error: {e}")

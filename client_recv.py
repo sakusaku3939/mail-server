@@ -36,30 +36,38 @@ def parse_data(data):
     if data == "":
         return "No up-to-date message"
 
-    split_texts = data.split(";")
-    from_name, to_name, subject_text, body_text, timestamp = split_texts
+    split_mails = data.split(",")
+    mail_text = ""
 
-    from_name_decoded = base64.b64decode(from_name).decode()
-    to_name_decoded = base64.b64decode(to_name).decode()
-    subject_text_decoded = base64.b64decode(subject_text).decode()
-    body_text_decoded = base64.b64decode(body_text).decode()
+    for mail in split_mails:
+        split_texts = mail.split(";")
+        from_name, to_name, subject_text, body_text, timestamp = split_texts
 
-    return f"""
-    timestamp:
-    {timestamp}
-    
-    from_name:
-    {from_name_decoded}
-    
-    to_name:
-    {to_name_decoded}
-    
-    subject_text:
-    {subject_text_decoded}
-    
-    body_text:
-    {body_text_decoded}
-    """
+        from_name_decoded = base64.b64decode(from_name).decode()
+        to_name_decoded = base64.b64decode(to_name).decode()
+        subject_text_decoded = base64.b64decode(subject_text).decode()
+        body_text_decoded = base64.b64decode(body_text).decode()
+
+        mail_text += f"""
+        ------------------------
+        timestamp:
+        {timestamp}
+        
+        from_name:
+        {from_name_decoded}
+        
+        to_name:
+        {to_name_decoded}
+        
+        subject_text:
+        {subject_text_decoded}
+        
+        body_text:
+        {body_text_decoded}
+        ------------------------
+        """
+
+    return mail_text
 
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

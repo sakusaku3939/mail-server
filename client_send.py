@@ -36,8 +36,8 @@ client.connect((HOST, PORT))
 # サーバーにメッセージを送信
 from_name = "test from zackey"
 to_name = "test to aokiti"
-subject_text = "test message"
-body_text = "this is test text;; ."
+subject_text = "test message2"
+body_text = "こんにちは"
 
 from_name_encoded = base64.b64encode(from_name.encode()).decode()
 to_name_encoded = base64.b64encode(to_name.encode()).decode()
