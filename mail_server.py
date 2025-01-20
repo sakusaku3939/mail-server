@@ -44,6 +44,8 @@ cur.execute(
 # SQLite用のロック
 lock = threading.Lock()
 
+running = True
+
 
 def handle_connection_smtp(client):
     try:
@@ -56,10 +58,12 @@ def handle_connection_smtp(client):
         split_texts = data.decode('utf-8').split(";")
         print(split_texts)
 
-        from_name_decoded = base64.b64decode(split_texts[0]).decode()
-        to_name_decoded = base64.b64decode(split_texts[1]).decode()
-        subject_text_decoded = base64.b64decode(split_texts[2]).decode()
-        body_text_decoded = base64.b64decode(split_texts[3]).decode()
+        from_name, to_name, subject_text, body_text = split_texts
+
+        from_name_decoded = base64.b64decode(from_name).decode()
+        to_name_decoded = base64.b64decode(to_name).decode()
+        subject_text_decoded = base64.b64decode(subject_text).decode()
+        body_text_decoded = base64.b64decode(body_text).decode()
 
         print(
             f"from_name_decoded: {from_name_decoded}, to_name_decoded: {to_name_decoded}, subject_text_decoded: {subject_text_decoded}, body_text_decoded: {body_text_decoded}"
@@ -69,7 +73,7 @@ def handle_connection_smtp(client):
         with lock:
             cur.execute(
                 "INSERT INTO mail (timestamp, from_name, to_name, subject_text, body_text) VALUES (?, ?, ?, ?, ?)",
-                (datetime.datetime.now(), from_name_decoded, to_name_decoded, subject_text_decoded, body_text_decoded))
+                (datetime.datetime.now(), from_name, to_name, subject_text, body_text))
             con.commit()
 
         response = "1".encode("utf-8")
@@ -113,14 +117,10 @@ def handle_connection_pop(client):
             body_text = row[5]
             timestamp = row[1]
 
-            from_name_encoded = base64.b64encode(from_name.encode()).decode()
-            to_name_encoded = base64.b64encode(to_name.encode()).decode()
-            subject_text_encoded = base64.b64encode(subject_text.encode()).decode()
-            body_text_encoded = base64.b64encode(body_text.encode()).decode()
-            timestamp_encoded = base64.b64encode(timestamp.isoformat().encode()).decode()
-
-            response = f"{from_name_encoded};{to_name_encoded};{subject_text_encoded};{body_text_encoded};{timestamp_encoded}".encode(
-                "utf-8")
+            response = (
+                f"{from_name};{to_name};{subject_text};{body_text};{timestamp}"
+                .encode("utf-8")
+            )
             client.sendall(response)
 
             # 受信したメールをDBから削除
@@ -136,23 +136,33 @@ def handle_connection_pop(client):
         client.close()
 
 
-def accept_connections(server, handler):
+def accept_connections(server, handler, type):
+    global running
+
     try:
-        while True:
-            client, address = server.accept()
-            print(f"{datetime.datetime.now()} 接続要求あり: {address}")
-            thread = threading.Thread(target=handler, args=(client,))
-            thread.start()
-    except KeyboardInterrupt:
+        while running:
+            server.settimeout(1.0)
+            try:
+                client, address = server.accept()
+                print(f"{datetime.datetime.now()} 接続要求あり: {address}")
+                thread = threading.Thread(target=handler, args=(client,))
+                thread.start()
+            except socket.timeout:
+                continue
+    finally:
         server.close()
+        print(f"Stopped {type} server")
 
 
 # SMTPサーバーとPOPサーバーの接続受付をそれぞれ別スレッドで実行
-smtp_thread = threading.Thread(target=accept_connections, args=(smtp_server, handle_connection_smtp))
+smtp_thread = threading.Thread(target=accept_connections, args=(smtp_server, handle_connection_smtp, "SMTP"))
 smtp_thread.start()
 
-pop_thread = threading.Thread(target=accept_connections, args=(pop_server, handle_connection_pop))
+pop_thread = threading.Thread(target=accept_connections, args=(pop_server, handle_connection_pop, "POP"))
 pop_thread.start()
 
-smtp_thread.join()
-pop_thread.join()
+try:
+    smtp_thread.join()
+    pop_thread.join()
+except KeyboardInterrupt:
+    running = False
